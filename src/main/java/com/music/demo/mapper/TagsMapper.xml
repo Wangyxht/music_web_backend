@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music.demo.mapper.TagsMapper">
+
+    <select id="getTags">
+        SELECT tn.name
+        FROM tags t
+            LEFT JOIN tag_name AS tn on t.tag_id = tn.id
+        WHERE entity_id = #{entityId} AND t.type = #{type}
+    </select>
+
+</mapper>

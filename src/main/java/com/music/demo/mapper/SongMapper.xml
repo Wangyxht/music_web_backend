@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music.demo.mapper.SongMapper">
+    <resultMap id="songSearchMap" type="com.music.demo.vo.SongBaseVO">
+        <result property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="singer" column="singer"/>
+        <result property="favourite" column="favourite"/>
+        <result property="duration" column="duration"/>
+    </resultMap>
+    <resultMap id="songDetailSearchMap" extends="songSearchMap" type="com.music.demo.vo.SongDetailVO">
+        <result property="favouriteNum" column="favourite_num"/>
+        <result property="introduction" column="introduction"/>
+        <result property="uploadTime" column="upload_time"/>
+        <result property="lyrics" column="lyrics"/>
+    </resultMap>
+
+    <select id="selectSongPage" resultMap="songSearchMap">
+        SELECT
+            s.id,
+            s.title,
+            s.singer,
+            s.duration,
+            EXISTS (
+                SELECT 1
+                FROM favourite f
+                WHERE f.entity_id = s.id
+                  AND f.user_id = #{userId}
+                  AND f.favourite_type = 0
+            ) AS favourite
+        FROM song AS s
+        ${ew.customSqlSegment}
+    </select>
+
+    <select id="selectTopSongs" resultMap="songSearchMap">
+        SELECT
+            s.id,
+            s.title,
+            s.singer,
+            s.duration,
+            EXISTS (
+                SELECT 1
+                FROM favourite f
+                WHERE f.entity_id = s.id
+                  AND f.user_id = #{userId}
+                  AND f.favourite_type = 0
+            ) AS favourite,
+            COUNT(f.entity_id) AS favourite_num
+        FROM
+            song AS s
+                LEFT JOIN
+            favourite f ON f.entity_id = s.id AND f.favourite_type = 0
+        WHERE s.audit = true AND s.is_delete = false
+        GROUP BY
+            s.id, s.title, s.singer, s.duration
+        ORDER BY
+            COUNT(f.entity_id) DESC
+            LIMIT #{limit};
+    </select>
+
+    <select id="selectSongDetail" resultMap="songDetailSearchMap">
+        SELECT
+            s.id,
+            s.title,
+            s.singer,
+            s.lyrics,
+            s.duration,
+            s.introduction,
+            s.upload_time,
+            EXISTS (
+                SELECT 1
+                FROM favourite f
+                WHERE f.entity_id = s.id
+                  AND f.user_id = #{userId}
+                  AND f.favourite_type = 0
+            ) AS favourite,
+            COUNT(f.entity_id) AS favourite_num
+        FROM
+            song AS s
+                LEFT JOIN
+            favourite f ON f.entity_id = s.id AND f.favourite_type = 0
+        ${ew.customSqlSegment}
+        GROUP BY
+            s.id, s.title, s.singer, s.introduction
+    </select>
+</mapper>

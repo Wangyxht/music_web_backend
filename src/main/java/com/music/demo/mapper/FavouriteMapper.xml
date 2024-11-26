@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music.demo.mapper.FavouriteMapper">
+
+    <select id="selectFavouriteSongsPage" resultMap="com.music.demo.mapper.SongMapper.songSearchMap">
+        SELECT
+            s.id,
+            s.title,
+            s.singer,
+            s.duration,
+            EXISTS (SELECT 1
+                    FROM favourite f
+                    WHERE f.entity_id = s.id
+                    AND f.user_id = #{userId}
+                    AND f.favourite_type = 0) AS favourite
+        FROM song AS s
+            LEFT JOIN favourite f ON f.entity_id = s.id
+            ${ew.customSqlSegment}
+    </select>
+
+    <select id="selectFavouritePlaylistsPage" resultMap="com.music.demo.mapper.PlaylistMapper.playlistSearchMap">
+        SELECT
+            pl.id AS id,
+            pl.title AS title,
+            u.username AS uploader,
+            COUNT(pls.song_id) AS song_count
+        FROM
+            playlist pl
+                LEFT JOIN user u ON pl.user_id = u.id
+                LEFT JOIN playlist_song pls ON pl.id = pls.playlist_id
+                LEFT JOIN favourite f ON f.entity_id = pl.id
+            ${ew.customSqlSegment}
+        GROUP BY pl.id, pl.title, u.username
+    </select>
+
+</mapper>

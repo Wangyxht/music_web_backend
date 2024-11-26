@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: music_web_backend
+  datasource:
+    url:
+    username:
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 30000
+      max-lifetime: 60000
+      connection-test-query: SELECT 1;
+      idle-timeout: 60000
+      maximum-pool-size: 10
+      minimum-idle: 5
+      read-only: false
+  data:
+    redis:
+      host:
+      port: 6379
+      database:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+server:
+  port: 8082
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    auto-mapping-behavior: full
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapper-locations: classpath:mapper/*.xml
+file:
+  cover-dir: ./uploads/cover
+  audio-dir: ./uploads/audio
+aliyun:
+  sms:
+    access-key-id:
+    access-key-secret:
+    region-id: cn-hangzhou
+    sign-name: 音乐交流平台
+    register-template-code:
+    login-template-code:
+  green:
+    access-key-id:
+    access-key-secret:
+logging:
+  level:
+    com.music.demo.mapper: debug

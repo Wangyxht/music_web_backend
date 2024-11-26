@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music.demo.mapper.PlaylistMapper">
+    <resultMap id="playlistSearchMap" type="com.music.demo.vo.PlaylistBaseVO">
+        <result property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="uploader" column="uploader"/>
+        <result property="songCount" column="song_count"/>
+    </resultMap>
+
+    <!-- 对应 PlaylistDetailVO 的 ResultMap -->
+    <resultMap id="playlistDetailMap" type="com.music.demo.vo.PlaylistDetailVO" extends="playlistSearchMap">
+        <result property="userId" column="user_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="introduction" column="introduction"/>
+        <result property="liked" column="liked"/>
+        <result property="favourite" column="favourite"/>
+        <result property="favouriteCount" column="favourite_count"/>
+        <result property="likeCount" column="like_count"/>
+    </resultMap>
+
+    <select id="selectPlaylistPage" resultMap="playlistSearchMap">
+        SELECT
+            pl.id AS id,
+            pl.title AS title,
+            u.username AS uploader,
+            COUNT(pls.song_id) AS song_count
+        FROM
+            playlist pl
+            LEFT JOIN user u ON pl.user_id = u.id
+            LEFT JOIN playlist_song pls ON pl.id = pls.playlist_id
+            ${ew.customSqlSegment}
+        GROUP BY pl.id, pl.title, u.username
+    </select>
+
+    <select id="selectTopPlaylists" resultMap="playlistSearchMap">
+        SELECT
+            pl.id AS id,
+            pl.title AS title,
+            u.username AS uploader,
+            COUNT(pls.song_id) AS song_count,
+            -- 点赞总数: 统计所有点赞该歌单的独立用户
+            (SELECT COUNT(DISTINCT l1.user_id)
+             FROM `like` l1
+             WHERE l1.playlist_id = pl.id) AS like_count,
+            -- 收藏总数: 统计所有收藏该歌单的独立用户
+            (SELECT COUNT(DISTINCT f1.user_id)
+             FROM favourite f1
+             WHERE f1.entity_id = pl.id AND f1.favourite_type = 1) AS favourite_count
+        FROM
+            playlist pl
+                LEFT JOIN user u ON pl.user_id = u.id
+                LEFT JOIN playlist_song pls ON pl.id = pls.playlist_id
+        WHERE pl.is_delete = false
+        GROUP BY
+            pl.id, pl.title, u.username
+        ORDER BY
+            (like_count + favourite_count) DESC
+        LIMIT #{limit};
+    </select>
+
+    <!-- 查询 PlaylistDetailVO 数据 -->
+    <select id="selectPlaylistDetail" resultMap="playlistDetailMap">
+        SELECT pl.id                                  AS id,
+               pl.title                               AS title,
+               u.username                             AS uploader,
+               COUNT(pls.song_id)                     AS song_count,
+               pl.user_id                             AS user_id,
+               pl.create_time                         AS create_time,
+               pl.introduction                        AS introduction,
+               -- 判断是否被用户点赞
+               IF(l.user_id IS NOT NULL, TRUE, FALSE) AS liked,
+               -- 判断是否被用户收藏
+               IF(f.user_id IS NOT NULL, TRUE, FALSE) AS favourite,
+               -- 点赞总数: 统计所有点赞该歌单的独立用户
+               (SELECT COUNT(DISTINCT l1.user_id)
+                FROM `like` l1
+                WHERE l1.playlist_id = pl.id) AS like_count,
+               -- 收藏总数: 统计所有收藏该歌单的独立用户
+               (SELECT COUNT(DISTINCT f1.user_id)
+                FROM favourite f1
+                WHERE f1.entity_id = pl.id AND f1.favourite_type = 1) AS favourite_count
+        FROM playlist pl
+
+                 LEFT JOIN user u ON pl.user_id = u.id
+                 LEFT JOIN playlist_song pls ON pl.id = pls.playlist_id
+                 LEFT JOIN `like` l ON pl.id = l.playlist_id AND l.user_id = #{userId}
+                 LEFT JOIN favourite f ON pl.id = f.entity_id
+            AND f.favourite_type = 1
+            AND f.user_id= #{userId}
+        WHERE pl.id = #{playlistId}
+        GROUP BY pl.id, pl.title, u.username, pl.user_id, pl.create_time, pl.introduction, l.user_id, f.user_id
+    </select>
+</mapper>
